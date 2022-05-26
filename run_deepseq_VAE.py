@@ -1,4 +1,4 @@
-
+# %%
 import torch
 import math
 import pickle
@@ -18,17 +18,20 @@ import datetime
 device = 'cuda'
 
 # determine VAE
-epochs = 15
+epochs = 1500
 offset = 4
 latent_dim = 30
-name = 'ubqt'
+name = 'toxi'
+if name=='toxi':
+    offset = 1
 extra = 'test'
 split_by_DI = False
 pos_per_fold = pos_per_fold_assigner(name.lower())
 if name == 'blat':
     name = name.upper()
    
-df = pickle.load( open(name.lower()+'_data_df.pkl', "rb" ) )
+df = pickle.load( open('files/'+name.lower()+'_data_df.pkl', "rb" ) )
+
 query_seqs = df['seqs'][0]
 assay_df = df.dropna(subset=['assay']).reset_index(drop=True)
 y = assay_df['assay']
@@ -111,8 +114,23 @@ date = 'D'+str(datetime.datetime.now().year)+str(datetime.datetime.now().month)+
 time = 'T'+str(datetime.datetime.now().hour)+str(datetime.datetime.now().minute)
 date_time = date+time
 bestMSE_model_save_name = date_time+name+'_'+str(latent_dim)+'dim_bestMSE_VAE.torch'
-train_indices, val_indices, test_indices = positional_splitter(assay_df, query_seqs, val=True, offset = offset, pos_per_fold = pos_per_fold, 
+
+train_indices = []
+val_indices = []
+test_indices = []
+if name=='toxi':
+    for i in range(3):
+        x = np.array(list(range(len(assay_df['seqs'])))).reshape(-1,1)
+        train_id, test_id = train_test_split(x, test_size=0.2, random_state=42)
+        train_id, val_id = train_test_split(x[train_id], test_size=0.25, random_state=42)
+        train_indices.append(train_id.flatten())
+        val_indices.append(val_id.flatten())
+        test_indices.append(test_id.flatten())
+else:
+    train_indices, val_indices, test_indices = positional_splitter(assay_df, query_seqs, val=True, offset = offset, pos_per_fold = pos_per_fold, 
                                             split_by_DI = split_by_DI)
+
+print(train_indices[0].shape)
 
 results_dict = defaultdict(list)
 best_downstream_loss = np.inf
@@ -158,7 +176,7 @@ for epoch in range(1, epochs + 1):
                     'model_state_dict': model.state_dict(),
                     'optimizer_state_dict': optimizer.state_dict(),
                     'loss': train_loss,
-                    }, bestMSE_model_save_name)
+                    }, 'results/'+bestMSE_model_save_name)
 
                 output_test = pred_func(mu, y, [np.hstack([t,v]) for t,v in zip(train_indices,val_indices)], test_indices, seed=42)
                 results_dict['downstream_testmse_list'].append(output_test[0])
@@ -176,5 +194,7 @@ for epoch in range(1, epochs + 1):
         
 with torch.no_grad():
     print('Saving...')
-    pickle.dump( results_dict, open('final/VAE_'+extra+date_time+'_'+name+'_'+str(latent_dim)+'dim_final_results_dict.pkl', "wb" ) )
+    pickle.dump( results_dict, open('results/VAE_'+extra+date_time+'_'+name+'_'+str(latent_dim)+'dim_final_results_dict.pkl', "wb" ) )
 print('Total time: ', datetime.datetime.now() - overall_start_time)
+
+# %%

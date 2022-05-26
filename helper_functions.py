@@ -235,6 +235,8 @@ def pos_per_fold_assigner(name):
         pos_per_fold = 47
     if name=='mth3':
         pos_per_fold = 107
+    if name=='toxi':
+        pos_per_fold = 2
     return pos_per_fold
 
 

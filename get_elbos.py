@@ -50,13 +50,13 @@ device = 'cpu'
 # determine VAE
 latent_dim = 30
 names = ['blat', 'calm', 'mth3', 'brca', 'timb', 'ubqt']
-
+names = ['toxi']
 DE_dict = {}
 for name in names:
     if name == 'blat':
         name = name.upper()
     
-    df = pickle.load( open('files/'+name.lower()+'_data_df.pkl', "rb" ) )
+    df = pickle.load( open('files/'+name+'_data_df.pkl', "rb" ) )
     query_seqs = df['seqs'][0]
     assay_df = df.dropna(subset=['assay']).reset_index(drop=True)
 
@@ -124,7 +124,7 @@ for name in names:
     if name.lower()=='ubqt':
         path_torch = 'trained_models/D2021729T173ubqt_30dim_bestMSE_VAE.torch'
     if name.lower()=='toxi':
-        path_torch = 'results/D2022526T1232toxi_30dim_bestMSE_VAE.torch.torch'
+        path_torch = 'results/D2022526T1232toxi_30dim_bestMSE_VAE.torch'
 
     model.load_state_dict(torch.load(path_torch, map_location=torch.device(device))['model_state_dict'])
 
